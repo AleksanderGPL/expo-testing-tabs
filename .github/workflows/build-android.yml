@@ -1,0 +1,76 @@
+name: Build Android
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🏗 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🏗 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: 🏗 Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
+
+    - name: 📦 Install dependencies
+      run: pnpm install
+
+    - name: 🏗 Setup Expo CLI
+      run: npm install -g @expo/cli
+
+    - name: ☕ Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 🤖 Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: 🔨 Build Android APK
+      run: |
+        echo "🔨 Starting local Android build..."
+        
+        # Install dependencies and prebuild
+        npx expo install --fix
+        npx expo prebuild --platform android --clear
+        
+        # Make gradlew executable
+        chmod +x android/gradlew
+        
+        # Build the APK
+        cd android
+        ./gradlew assembleRelease --no-daemon
+        
+        echo "✅ Local build completed"
+
+    - name: 📱 Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk-${{ github.sha }}
+        path: android/app/build/outputs/apk/release/*.apk
+        retention-days: 30
+
+    - name: 📋 Build Summary
+      run: |
+        echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Platform**: Android" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Type**: APK" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Method**: Local Build" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📦 The APK artifact has been uploaded and is available for download." >> $GITHUB_STEP_SUMMARY 
