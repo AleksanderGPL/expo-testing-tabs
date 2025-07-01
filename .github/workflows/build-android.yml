@@ -59,7 +59,7 @@ jobs:
         
         # Install dependencies and prebuild
         npx expo install --fix
-        npx expo prebuild --platform android --clear
+        npx expo prebuild --platform android
         
         # Make gradlew executable
         chmod +x android/gradlew
